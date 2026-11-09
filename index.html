@@ -488,13 +488,17 @@ function imageDe(p) {
   tampon.image = null;
   tampon.promesse = (async () => {
     const blob = await DB.lire('images', p.image);
-    if (!blob) throw new Error('image absente');
-    const img = await decoder(blob);
+    if (!blob) throw new Error('absente');
+    let img;
+    try { img = await decoder(blob); } catch (e) { throw new Error('illisible (' + ((e && e.name) || 'erreur') + ')'); }
     if (tampon.cle === p.image) tampon.image = img;
     return img;
   })();
   tampon.promesse.catch(() => { if (tampon.cle === p.image) tampon.cle = null; });
   return tampon.promesse;
+}
+function messageImage(e) {
+  return 'L’image de cette page est ' + ((e && e.message) || 'illisible') + '. Réimportez le lot depuis l’icône de l’application, les corrections déjà faites sur le téléphone sont gardées.';
 }
 const largeurImg = (img) => img.naturalWidth || img.width;
 const hauteurImg = (img) => img.naturalHeight || img.height;
@@ -732,7 +736,7 @@ async function vuePage(pid) {
   const maVue = numeroVue;
   let img;
   try { img = await imageDe(p); } catch (e) {
-    liste.prepend(el('p', { class: 'erreur' }, 'L’image de cette page est introuvable. Réimportez-la avec son fichier XML.'));
+    liste.prepend(el('p', { class: 'erreur' }, messageImage(e)));
     return;
   }
   if (maVue !== numeroVue) return;
@@ -831,7 +835,7 @@ function vueLigne(pidInitial, iInitial) {
     segs.classList.add('charge');
     let img;
     try { img = await imageDe(p); } catch (e) {
-      if (jeton === c.jeton) { segs.classList.remove('charge'); segs.replaceChildren(el('p', { class: 'erreur' }, 'Image introuvable pour cette page.')); }
+      if (jeton === c.jeton) { segs.classList.remove('charge'); segs.replaceChildren(el('p', { class: 'erreur' }, messageImage(e))); }
       return;
     }
     if (jeton !== c.jeton) return;
@@ -1010,7 +1014,7 @@ const ignorer = (chemin) => /(^|\/)(__MACOSX|\.)/.test(chemin) || /(^|\/)\._/.te
 async function importer(liste) {
   const v = voile('Lecture des fichiers…');
   const problemes = [];
-  let ajoutees = 0, remplacees = 0, sautees = 0;
+  let ajoutees = 0, remplacees = 0, sautees = 0, reparees = 0;
   try {
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
     const entrees = [];
@@ -1045,7 +1049,9 @@ async function importer(liste) {
         lues.push({ e, texte, info, imgE });
       } catch (err) { problemes.push(baseNom(e.chemin) + ' : ' + err.message); }
     }
-    const conflits = lues.filter((x) => { const p = pageParId(x.e.chemin); return p && stats(p).touchee; });
+    // une page déjà commencée et dont le nombre de lignes n'a pas changé garde ses corrections, seule l'image est rafraîchie
+    const garderLignes = (x) => { const p = pageParId(x.e.chemin); return !!p && stats(p).touchee && p.lignes.length === x.info.lignes.length; };
+    const conflits = lues.filter((x) => { const p = pageParId(x.e.chemin); return p && stats(p).touchee && !garderLignes(x); });
     let remplacer = true;
     if (conflits.length) {
       v.maj('En attente de votre choix…');
@@ -1055,25 +1061,32 @@ async function importer(liste) {
       const { e, texte, info, imgE } = lues[k];
       const id = e.chemin;
       const existante = pageParId(id);
-      if (existante && stats(existante).touchee && !remplacer) { sautees++; continue; }
+      const garder = garderLignes(lues[k]);
+      if (existante && stats(existante).touchee && !garder && !remplacer) { sautees++; continue; }
       v.maj('Enregistrement ' + (k + 1) + '/' + lues.length);
+      // copie réelle des octets : iOS efface le fichier choisi dans Fichiers peu après l'import,
+      // et un Blob qui n'en serait qu'un morceau deviendrait illisible
       const brut = await imgE.blob();
-      const blob = new Blob([brut], { type: TYPES_IMAGE[extension(imgE.chemin)] });
+      const blob = new Blob([await brut.arrayBuffer()], { type: TYPES_IMAGE[extension(imgE.chemin)] });
       const cleImage = imgE.chemin;
       await DB.ecrire('images', blob, cleImage);
       await DB.ecrire('xml', texte, id);
-      const p = { id, chemin: id, format: info.format, W: info.W, H: info.H, image: cleImage, lignes: info.lignes, importee: Date.now() };
+      const p = { id, chemin: id, format: info.format, W: info.W, H: info.H, image: cleImage, lignes: garder ? existante.lignes : info.lignes, importee: Date.now() };
       await DB.ecrire('pages', p);
-      if (existante) { S.pages[S.pages.indexOf(existante)] = p; remplacees++; } else { S.pages.push(p); ajoutees++; }
+      if (existante) { S.pages[S.pages.indexOf(existante)] = p; if (garder) reparees++; else remplacees++; } else { S.pages.push(p); ajoutees++; }
       if (tampon.cle === cleImage) tampon.cle = null;
     }
     trierPages();
     detecterNorm();
     await sauverReglages();
-    let texte = pluriel(ajoutees, 'page ajoutée', 'pages ajoutées');
-    if (remplacees) texte += ', ' + pluriel(remplacees, 'remplacée', 'remplacées');
-    if (sautees) texte += ', ' + pluriel(sautees, 'gardée telle quelle', 'gardées telles quelles');
-    if (problemes.length) texte += ', ' + pluriel(problemes.length, 'fichier ignoré', 'fichiers ignorés') + ' :';
+    const morceaux = [];
+    if (ajoutees || !(remplacees + reparees + sautees)) morceaux.push(pluriel(ajoutees, 'page ajoutée', 'pages ajoutées'));
+    if (remplacees) morceaux.push(pluriel(remplacees, 'page remplacée', 'pages remplacées'));
+    if (reparees) morceaux.push(pluriel(reparees, 'page rafraîchie en gardant ses corrections', 'pages rafraîchies en gardant leurs corrections'));
+    if (sautees) morceaux.push(pluriel(sautees, 'page gardée telle quelle', 'pages gardées telles quelles'));
+    if (problemes.length) morceaux.push(pluriel(problemes.length, 'fichier ignoré', 'fichiers ignorés'));
+    let texte = morceaux.join(', ');
+    texte = texte.charAt(0).toUpperCase() + texte.slice(1) + (problemes.length ? ' :' : '');
     S.message = { texte: texte + (problemes.length ? '' : '.'), liste: problemes.slice(0, 12).concat(problemes.length > 12 ? ['… et ' + (problemes.length - 12) + ' autres'] : []) };
   } catch (err) {
     S.message = { texte: 'L’import a échoué : ' + err.message + '.', liste: problemes };

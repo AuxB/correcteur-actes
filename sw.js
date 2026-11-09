@@ -1,6 +1,6 @@
 // Service worker : garde l'application en cache pour qu'elle s'ouvre sans connexion.
 // Pour publier une nouvelle version, changer VERSION.
-const VERSION = 'correcteur-v2';
+const VERSION = 'correcteur-v3';
 const POLICES = 'correcteur-polices';
 const COQUILLE = [
   './',
