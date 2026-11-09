@@ -207,13 +207,15 @@ const tri = new Intl.Collator('fr', { numeric: true, sensitivity: 'base' });
 function trierPages() { S.pages.sort((a, b) => tri.compare(a.chemin, b.chemin)); }
 const pageParId = (id) => S.pages.find((p) => p.id === id);
 function stats(p) {
-  let ok = 0, doute = 0, modif = 0;
+  let ok = 0, doute = 0, modif = 0, faites = 0;
   for (const L of p.lignes) {
     if (L.etat === 'ok') ok++;
     else if (L.etat === 'doute') doute++;
     if (L.texte !== L.lu) modif++;
+    if (L.etat !== (L.etat0 || 'todo') || L.texte !== L.lu) faites++;
   }
-  return { total: p.lignes.length, ok, doute, modif, touchee: ok + doute + modif > 0 };
+  // « touchee » : la page a reçu une action sur le téléphone (les lignes arrivées vérifiées ne comptent pas)
+  return { total: p.lignes.length, ok, doute, modif, touchee: faites > 0 };
 }
 function statsGlobales() {
   const g = { total: 0, ok: 0, doute: 0, modif: 0, pagesTouchees: 0 };
@@ -272,7 +274,7 @@ function lireAlto(doc) {
     let b = ['HPOS', 'VPOS', 'WIDTH', 'HEIGHT'].map((a) => Number(l.getAttribute(a)) || 0);
     if ((!b[2] || !b[3]) && poly) b = boite(poly);
     const t = texteAlto(l);
-    return { i, boite: b, poly, lu: t, texte: t, etat: 'todo' };
+    return { i, boite: b, poly, lu: t, texte: t, etat: 'todo', etat0: 'todo' };
   });
   return { format: 'alto', W, H, image: baseNom(fichier.trim()), lignes };
 }
@@ -294,7 +296,9 @@ function lirePage(doc) {
     const b = poly ? boite(poly) : [0, 0, 0, 0];
     let t = texteEquiv(l);
     if (t === null) t = enfants(l, 'Word').map((w) => texteEquiv(w) || '').join(' ');
-    return { i, boite: b, poly, lu: t, texte: t, etat: 'todo' };
+    // lignes déjà transcrites dans l'atelier de trier_actes : elles arrivent vérifiées
+    const etat = /atelier:(transcrite|ignoree)/.test(l.getAttribute('custom') || '') ? 'ok' : 'todo';
+    return { i, boite: b, poly, lu: t, texte: t, etat, etat0: etat };
   });
   return { format: 'page', W, H, image: baseNom(fichier), lignes };
 }
@@ -681,7 +685,7 @@ function vueAccueil() {
     el('div', { style: 'height:16px' }),
     ...enfantsVue,
     prochaine
-      ? el('button', { class: 'bouton', onclick: () => aller('#/ligne/' + enc(prochaine.pid) + '/' + prochaine.i) }, g.ok + g.doute ? 'Reprendre la correction' : 'Commencer la correction')
+      ? el('button', { class: 'bouton', onclick: () => aller('#/ligne/' + enc(prochaine.pid) + '/' + prochaine.i) }, g.pagesTouchees ? 'Reprendre la correction' : 'Commencer la correction')
       : el('button', { class: 'bouton', onclick: () => aller('#/export') }, 'Exporter les corrections'),
     el('div', { class: 'liens' },
       el('button', { class: 'lien', onclick: () => $('#fichiers').click() }, 'Importer'),
@@ -920,7 +924,8 @@ function vueExport() {
           lignes: p.lignes.length,
           verifiees: p.lignes.filter((L) => L.etat === 'ok').map((L) => L.i),
           douteuses: p.lignes.filter((L) => L.etat === 'doute').map((L) => L.i),
-          corrigees: p.lignes.filter((L) => L.texte !== L.lu).map((L) => L.i)
+          corrigees: p.lignes.filter((L) => L.texte !== L.lu).map((L) => L.i),
+          traitees: p.lignes.filter((L) => L.etat !== (L.etat0 || 'todo') || L.texte !== L.lu).map((L) => L.i)
         };
       }
       fichiers.push({ nom: 'etat_correction.json', donnees: te.encode(JSON.stringify(etat, null, 2)) });

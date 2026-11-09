@@ -20,7 +20,13 @@ Elle lit les fichiers ALTO et PAGE XML avec leurs images, et renvoie les XML cor
 
 Il faut iOS 16.4 ou plus récent pour ouvrir les archives zip.
 
-## Préparer un lot sur le Mac
+## Depuis l'Atelier (cas habituel)
+
+Dans l'interface de trier_actes, écran Entraînement de l'Atelier, « Préparer le lot pour l'iPhone »
+dépose un zip de toutes les pages du corpus dans Téléchargements. Au retour, « Importer les corrections
+de l'iPhone » reprend les lignes validées sur le téléphone, sans passer par le script ci-dessous.
+
+## Préparer un lot sur le Mac, hors de l'Atelier
 
 Dans le Finder, compresser le dossier qui contient les images et leurs XML (clic droit,
 « Compresser »), puis l'envoyer par AirDrop. Sur l'iPhone, l'enregistrer dans Fichiers,
@@ -32,8 +38,8 @@ puis Importer dans l'application. On peut aussi sélectionner directement des XM
 2. Sur le Mac, depuis le dossier `actes` :
 
    ```bash
-   python3 correcteur/integrer_corrections.py ~/Downloads/corrections_AAAA-MM-JJ_HHhMM.zip --essai
-   python3 correcteur/integrer_corrections.py ~/Downloads/corrections_AAAA-MM-JJ_HHhMM.zip
+   python3 ../correcteur/integrer_corrections.py ~/Downloads/corrections_AAAA-MM-JJ_HHhMM.zip --essai
+   python3 ../correcteur/integrer_corrections.py ~/Downloads/corrections_AAAA-MM-JJ_HHhMM.zip
    ```
 
    La première commande montre ce qui sera fait, la seconde remplace les XML et copie

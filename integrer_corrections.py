@@ -2,8 +2,8 @@
 """Range dans le projet les XML corrigés sur l'iPhone.
 
 Usage, depuis le dossier du projet (actes) :
-    python3 correcteur/integrer_corrections.py ~/Downloads/corrections_2026-11-09_18h30.zip
-    python3 correcteur/integrer_corrections.py archive.zip --essai      # montre ce qui serait fait
+    python3 ../correcteur/integrer_corrections.py ~/Downloads/corrections_2026-11-09_18h30.zip
+    python3 ../correcteur/integrer_corrections.py archive.zip --essai      # montre ce qui serait fait
 
 Chaque XML de l'archive remplace le fichier du même chemin dans le dossier de destination
 (ou, à défaut, l'unique fichier du même nom trouvé dans ses sous-dossiers). Les fichiers
