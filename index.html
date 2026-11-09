@@ -1,0 +1,1102 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f1f0eb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Correcteur">
+<title>Correcteur d'actes</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --fond: #f1f0eb;
+  --carte: #ffffff;
+  --encre: #111613;
+  --encre-2: #555b57;
+  --encre-3: #8a8f8b;
+  --vert: #2c4b42;
+  --vert-clair: #dfe7e3;
+  --rouge: #d9482b;
+  --ocre: #b7791f;
+  --ocre-clair: #f4e6cf;
+  --papier: #e8dcbd;
+  --trait: #dcdad2;
+  --titre: 'Bricolage Grotesque', ui-rounded, -apple-system, system-ui, sans-serif;
+  --mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --texte: -apple-system, system-ui, 'Helvetica Neue', Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--fond);
+  color: var(--encre);
+  font: 16px/1.45 var(--texte);
+  -webkit-tap-highlight-color: transparent;
+}
+#app {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 14px) max(16px, env(safe-area-inset-right)) calc(env(safe-area-inset-bottom) + 40px) max(16px, env(safe-area-inset-left));
+}
+h1 { font: 800 34px/1.02 var(--titre); letter-spacing: -0.035em; margin: 10px 0 8px; }
+h2 { font: 800 22px/1.1 var(--titre); letter-spacing: -0.025em; margin: 0 0 6px; overflow-wrap: anywhere; }
+p { margin: 0 0 10px; }
+.mono { font-family: var(--mono); font-size: 13px; color: var(--encre-2); font-variant-numeric: tabular-nums; }
+.discret { color: var(--encre-2); font-size: 14px; }
+.carte { background: var(--carte); border-radius: 14px; padding: 14px 16px; margin: 0 0 10px; }
+.bouton {
+  display: block; width: 100%; min-height: 52px; padding: 0 18px;
+  border: 0; border-radius: 13px; background: var(--vert); color: #fff;
+  font: 700 17px var(--texte); cursor: pointer; touch-action: manipulation;
+}
+.bouton:active { filter: brightness(1.15); }
+.bouton[disabled] { opacity: .45; }
+.lien {
+  background: none; border: 0; color: var(--vert); font: 600 15px var(--texte);
+  padding: 10px 6px; min-height: 44px; cursor: pointer; touch-action: manipulation; text-decoration: none;
+}
+.lien.danger { color: var(--rouge); }
+.lien[disabled] { color: var(--encre-3); }
+.liens { display: flex; flex-wrap: wrap; gap: 2px 14px; align-items: center; margin: 6px -6px 14px; }
+.entete { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 -6px 4px; }
+.barre { height: 4px; background: var(--trait); border-radius: 2px; overflow: hidden; margin: 8px 0 0; }
+.barre > i { display: block; height: 100%; background: var(--vert); }
+.pastille { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--trait); flex: none; }
+.pastille.ok { background: var(--vert); }
+.pastille.doute { background: var(--ocre); }
+.etat { font: 500 12px var(--mono); padding: 3px 8px; border-radius: 20px; background: var(--trait); color: var(--encre-2); white-space: nowrap; }
+.etat.ok { background: var(--vert-clair); color: var(--vert); }
+.etat.doute { background: var(--ocre-clair); color: var(--ocre); }
+.erreur { color: var(--rouge); }
+.alerte { background: var(--ocre-clair); border-radius: 14px; padding: 12px 14px; margin: 0 0 12px; font-size: 14px; }
+.message { background: var(--vert-clair); border-radius: 14px; padding: 12px 14px; margin: 0 0 12px; font-size: 14px; }
+.message ul { margin: 6px 0 0; padding-left: 18px; }
+
+/* Liste des pages */
+.page-carte { display: block; width: 100%; text-align: left; border: 0; font: inherit; color: inherit; cursor: pointer; }
+.page-carte .nom { font-weight: 650; font-size: 15px; overflow-wrap: anywhere; margin-bottom: 3px; }
+.page-carte .dossier { font: 12px var(--mono); color: var(--encre-3); overflow-wrap: anywhere; }
+
+/* Lignes d'une page */
+.ligne-carte { display: block; width: 100%; text-align: left; border: 0; font: inherit; color: inherit; cursor: pointer; padding: 10px 12px 12px; }
+.ligne-carte canvas { display: block; border-radius: 6px; background: var(--papier); margin-bottom: 8px; }
+.ligne-carte .txt { display: flex; gap: 8px; align-items: baseline; font-size: 15px; overflow-wrap: anywhere; }
+.ligne-carte .txt .pastille { position: relative; top: -1px; }
+.ligne-carte .vide { color: var(--encre-3); font-style: italic; }
+
+/* Éditeur de ligne */
+.compteur { display: flex; align-items: center; gap: 8px; }
+.segments { margin: 8px 0 6px; min-height: 60px; }
+.segments canvas { display: block; border-radius: 8px; background: var(--papier); margin: 0 0 6px; }
+.segments .defile { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 8px; }
+.segments .defile canvas { margin: 0; }
+.segments.charge { opacity: .5; }
+.outils { display: flex; align-items: center; justify-content: space-between; margin: 0 -6px 4px; }
+.outils .zoom { display: flex; align-items: center; gap: 2px; }
+.outils .zoom .lien { font: 600 20px var(--texte); min-width: 44px; }
+.palette { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.palette::-webkit-scrollbar { display: none; }
+.touche {
+  flex: none; min-width: 44px; height: 44px; padding: 0 8px; border: 0; border-radius: 10px;
+  background: var(--carte); color: var(--encre); font: 21px/1 var(--texte); cursor: pointer; touch-action: manipulation;
+}
+.touche:active { background: var(--vert-clair); }
+.saisie {
+  display: block; width: 100%; min-height: 72px; padding: 12px 14px; margin: 0 0 6px;
+  border: 0; border-radius: 13px; background: var(--carte); color: var(--encre);
+  font: 20px/1.4 var(--texte); resize: none; outline: none; box-shadow: inset 0 0 0 1px var(--trait);
+}
+.saisie:focus { box-shadow: inset 0 0 0 2px var(--vert); }
+.lu { font-size: 13px; color: var(--encre-2); margin: 0 0 8px; overflow-wrap: anywhere; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; }
+.lu .lien { padding: 4px 6px; min-height: 0; font-size: 13px; }
+.actions { margin-top: 4px; }
+.actions .liens { justify-content: space-between; margin-top: 4px; }
+
+/* Réglages */
+label.champ { display: block; font-weight: 600; font-size: 15px; margin: 0 0 6px; }
+select, input[type=text] {
+  width: 100%; min-height: 44px; padding: 8px 12px; border: 0; border-radius: 10px;
+  background: var(--fond); color: var(--encre); font: 17px var(--texte);
+}
+.voile {
+  position: fixed; inset: 0; background: rgba(241,240,235,.92); display: flex; align-items: center; justify-content: center;
+  z-index: 10; padding: 24px; text-align: center;
+}
+.voile .carte { width: 100%; max-width: 360px; }
+</style>
+</head>
+<body>
+<main id="app" aria-live="polite"></main>
+<input type="file" id="fichiers" multiple hidden accept=".zip,.xml,.png,.jpg,.jpeg,.tif,.tiff,.webp,application/zip,text/xml,application/xml,image/*">
+<script>
+'use strict';
+
+/* ---------- Outils DOM ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+function el(tag, props, ...enfants) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (v == null || v === false) continue;
+    if (k === 'class') e.className = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, '');
+    else e.setAttribute(k, v);
+  }
+  for (const c of enfants.flat(Infinity)) {
+    if (c == null || c === false) continue;
+    e.append(c.nodeType ? c : document.createTextNode(String(c)));
+  }
+  return e;
+}
+const nombre = (n) => n.toLocaleString('fr-FR');
+const enc = encodeURIComponent;
+const pluriel = (n, un, plusieurs) => nombre(n) + ' ' + (n > 1 ? plusieurs : un);
+
+/* ---------- Stockage (IndexedDB) ---------- */
+const DB = {
+  db: null,
+  ouvrir() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('correcteur', 1);
+      r.onupgradeneeded = () => {
+        const d = r.result;
+        d.createObjectStore('pages', { keyPath: 'id' });
+        d.createObjectStore('xml');
+        d.createObjectStore('images');
+        d.createObjectStore('reglages');
+      };
+      r.onsuccess = () => { this.db = r.result; res(); };
+      r.onerror = () => rej(r.error);
+    });
+  },
+  requete(magasin, mode, fn) {
+    return new Promise((res, rej) => {
+      const t = this.db.transaction(magasin, mode);
+      let resultat;
+      const r = fn(t.objectStore(magasin));
+      if (r) r.onsuccess = () => { resultat = r.result; };
+      t.oncomplete = () => res(resultat);
+      t.onerror = () => rej(t.error);
+      t.onabort = () => rej(t.error || new Error('Écriture annulée (espace de stockage plein ?)'));
+    });
+  },
+  lire(m, k) { return this.requete(m, 'readonly', (s) => s.get(k)); },
+  tout(m) { return this.requete(m, 'readonly', (s) => s.getAll()); },
+  ecrire(m, v, k) { return this.requete(m, 'readwrite', (s) => (k === undefined ? s.put(v) : s.put(v, k))); },
+  effacer(m, k) { return this.requete(m, 'readwrite', (s) => s.delete(k)); },
+  vider(m) { return this.requete(m, 'readwrite', (s) => s.clear()); }
+};
+
+/* ---------- État ---------- */
+const S = {
+  pages: [],
+  reglages: { norm: 'auto', corpusNorm: 'NFC', palette: '', zoom: 60 },
+  message: null
+};
+const tri = new Intl.Collator('fr', { numeric: true, sensitivity: 'base' });
+function trierPages() { S.pages.sort((a, b) => tri.compare(a.chemin, b.chemin)); }
+const pageParId = (id) => S.pages.find((p) => p.id === id);
+function stats(p) {
+  let ok = 0, doute = 0, modif = 0;
+  for (const L of p.lignes) {
+    if (L.etat === 'ok') ok++;
+    else if (L.etat === 'doute') doute++;
+    if (L.texte !== L.lu) modif++;
+  }
+  return { total: p.lignes.length, ok, doute, modif, touchee: ok + doute + modif > 0 };
+}
+function statsGlobales() {
+  const g = { total: 0, ok: 0, doute: 0, modif: 0, pagesTouchees: 0 };
+  for (const p of S.pages) {
+    const s = stats(p);
+    g.total += s.total; g.ok += s.ok; g.doute += s.doute; g.modif += s.modif;
+    if (s.touchee) g.pagesTouchees++;
+  }
+  return g;
+}
+async function sauverPage(p) { p.maj = Date.now(); await DB.ecrire('pages', p); }
+async function sauverReglages() { await DB.ecrire('reglages', S.reglages, 'r'); }
+const nomCourt = (p) => p.chemin.split('/').pop().replace(/\.xml$/i, '');
+const dossierDe = (p) => p.chemin.split('/').slice(0, -1).join('/');
+
+/* ---------- Lecture des fichiers ALTO et PAGE XML ---------- */
+const tous = (n, nom) => Array.from(n.getElementsByTagNameNS('*', nom));
+const enfants = (n, nom) => Array.from(n.children).filter((c) => c.localName === nom);
+function points(chaine) {
+  const v = (chaine || '').trim().split(/[\s,]+/).map(Number).filter((x) => !Number.isNaN(x));
+  const p = [];
+  for (let i = 0; i + 1 < v.length; i += 2) p.push([v[i], v[i + 1]]);
+  return p.length >= 3 ? p : null;
+}
+function boite(p) {
+  const xs = p.map((q) => q[0]), ys = p.map((q) => q[1]);
+  const x = Math.min(...xs), y = Math.min(...ys);
+  return [x, y, Math.max(...xs) - x, Math.max(...ys) - y];
+}
+const baseNom = (c) => (c || '').split(/[\\/]/).pop().normalize('NFC');
+
+function lireXml(texte) {
+  const doc = new DOMParser().parseFromString(texte, 'application/xml');
+  if (doc.getElementsByTagName('parsererror').length) throw new Error('XML illisible');
+  const racine = doc.documentElement.localName.toLowerCase();
+  if (racine === 'alto') return lireAlto(doc);
+  if (racine === 'pcgts') return lirePage(doc);
+  throw new Error('ni ALTO ni PAGE XML');
+}
+function texteAlto(ligne) {
+  let t = '';
+  for (const e of ligne.getElementsByTagNameNS('*', '*')) {
+    if (e.localName === 'String') t += e.getAttribute('CONTENT') || '';
+    else if (e.localName === 'SP') t += ' ';
+  }
+  return t;
+}
+function lireAlto(doc) {
+  const page = tous(doc, 'Page')[0];
+  const W = Number(page && page.getAttribute('WIDTH')) || 0;
+  const H = Number(page && page.getAttribute('HEIGHT')) || 0;
+  const fichier = (tous(doc, 'fileName')[0] || {}).textContent || '';
+  const lignes = tous(doc, 'TextLine').map((l, i) => {
+    const forme = enfants(l, 'Shape')[0];
+    const poly = forme ? points((tous(forme, 'Polygon')[0] || { getAttribute: () => '' }).getAttribute('POINTS')) : null;
+    let b = ['HPOS', 'VPOS', 'WIDTH', 'HEIGHT'].map((a) => Number(l.getAttribute(a)) || 0);
+    if ((!b[2] || !b[3]) && poly) b = boite(poly);
+    const t = texteAlto(l);
+    return { i, boite: b, poly, lu: t, texte: t, etat: 'todo' };
+  });
+  return { format: 'alto', W, H, image: baseNom(fichier.trim()), lignes };
+}
+function texteEquiv(n) {
+  const te = enfants(n, 'TextEquiv');
+  if (!te.length) return null;
+  const choisi = te.find((t) => t.getAttribute('index') === '0') || te[0];
+  const u = enfants(choisi, 'Unicode')[0];
+  return u ? u.textContent : '';
+}
+function lirePage(doc) {
+  const page = tous(doc, 'Page')[0];
+  const W = Number(page && page.getAttribute('imageWidth')) || 0;
+  const H = Number(page && page.getAttribute('imageHeight')) || 0;
+  const fichier = (page && page.getAttribute('imageFilename')) || '';
+  const lignes = tous(doc, 'TextLine').map((l, i) => {
+    const c = enfants(l, 'Coords')[0];
+    const poly = points(c && c.getAttribute('points'));
+    const b = poly ? boite(poly) : [0, 0, 0, 0];
+    let t = texteEquiv(l);
+    if (t === null) t = enfants(l, 'Word').map((w) => texteEquiv(w) || '').join(' ');
+    return { i, boite: b, poly, lu: t, texte: t, etat: 'todo' };
+  });
+  return { format: 'page', W, H, image: baseNom(fichier), lignes };
+}
+
+/* ---------- Écriture des corrections dans le XML ---------- */
+function creer(doc, ref, nom) {
+  return doc.createElementNS(ref.namespaceURI, ref.prefix ? ref.prefix + ':' + nom : nom);
+}
+function ecrireAlto(doc, l, t) {
+  for (const c of Array.from(l.children)) if (['String', 'SP', 'HYP'].includes(c.localName)) c.remove();
+  const s = creer(doc, l, 'String');
+  for (const a of ['HPOS', 'VPOS', 'WIDTH', 'HEIGHT']) if (l.hasAttribute(a)) s.setAttribute(a, l.getAttribute(a));
+  s.setAttribute('CONTENT', t);
+  l.appendChild(s);
+}
+function ecrirePageXml(doc, l, t) {
+  const te = enfants(l, 'TextEquiv');
+  let e = te.find((x) => x.getAttribute('index') === '0') || te[0];
+  if (!e) { e = creer(doc, l, 'TextEquiv'); l.appendChild(e); }
+  let u = enfants(e, 'Unicode')[0];
+  if (!u) { u = creer(doc, l, 'Unicode'); e.appendChild(u); }
+  u.textContent = t;
+}
+function xmlCorrige(texteXml, p) {
+  const doc = new DOMParser().parseFromString(texteXml, 'application/xml');
+  const lignes = tous(doc, 'TextLine');
+  for (const L of p.lignes) {
+    if (L.texte === L.lu || !lignes[L.i]) continue;
+    if (p.format === 'alto') ecrireAlto(doc, lignes[L.i], L.texte);
+    else ecrirePageXml(doc, lignes[L.i], L.texte);
+  }
+  let sortie = new XMLSerializer().serializeToString(doc);
+  if (/^\s*<\?xml/.test(texteXml) && !/^\s*<\?xml/.test(sortie)) sortie = '<?xml version="1.0" encoding="UTF-8"?>\n' + sortie;
+  return sortie;
+}
+
+/* ---------- Normalisation Unicode ---------- */
+function detecterNorm() {
+  let nfd = 0, nfc = 0;
+  for (const p of S.pages) for (const L of p.lignes) {
+    const t = L.lu;
+    const enNFD = t.normalize('NFD'), enNFC = t.normalize('NFC');
+    if (enNFD === enNFC) continue;
+    if (t === enNFD) nfd++; else if (t === enNFC) nfc++;
+  }
+  if (nfd || nfc) S.reglages.corpusNorm = nfd > nfc ? 'NFD' : 'NFC';
+}
+function formeNorm() { return S.reglages.norm === 'auto' ? S.reglages.corpusNorm : S.reglages.norm; }
+function nettoyer(t) {
+  t = t.replace(/\s+/g, ' ').trim();
+  const f = formeNorm();
+  return f === 'aucune' ? t : t.normalize(f);
+}
+
+/* ---------- Archives zip (lecture et écriture, sans bibliothèque) ---------- */
+async function lireZip(fichier) {
+  const taille = fichier.size;
+  const longueur = Math.min(taille, 65557);
+  const fin = new DataView(await fichier.slice(taille - longueur).arrayBuffer());
+  let p = -1;
+  for (let i = longueur - 22; i >= 0; i--) if (fin.getUint32(i, true) === 0x06054b50) { p = i; break; }
+  if (p < 0) throw new Error('archive zip illisible');
+  let n = fin.getUint16(p + 10, true), tailleCd = fin.getUint32(p + 12, true), debutCd = fin.getUint32(p + 16, true);
+  if (debutCd === 0xffffffff || n === 0xffff || tailleCd === 0xffffffff) {
+    const loc = p - 20;
+    if (loc >= 0 && fin.getUint32(loc, true) === 0x07064b50) {
+      const off64 = Number(fin.getBigUint64(loc + 8, true));
+      const e64 = new DataView(await fichier.slice(off64, off64 + 56).arrayBuffer());
+      n = Number(e64.getBigUint64(32, true));
+      tailleCd = Number(e64.getBigUint64(40, true));
+      debutCd = Number(e64.getBigUint64(48, true));
+    }
+  }
+  const cd = new DataView(await fichier.slice(debutCd, debutCd + tailleCd).arrayBuffer());
+  const dec = new TextDecoder();
+  const entrees = [];
+  let q = 0;
+  for (let k = 0; k < n && q + 46 <= cd.byteLength; k++) {
+    if (cd.getUint32(q, true) !== 0x02014b50) break;
+    const methode = cd.getUint16(q + 10, true);
+    let tailleC = cd.getUint32(q + 20, true), tailleU = cd.getUint32(q + 24, true);
+    const ln = cd.getUint16(q + 28, true), le = cd.getUint16(q + 30, true), lc = cd.getUint16(q + 32, true);
+    let offset = cd.getUint32(q + 42, true);
+    const nom = dec.decode(new Uint8Array(cd.buffer, q + 46, ln)).normalize('NFC');
+    let x = q + 46 + ln;
+    const finExtra = x + le;
+    while (x + 4 <= finExtra) {
+      const id = cd.getUint16(x, true), sz = cd.getUint16(x + 2, true);
+      if (id === 0x0001) {
+        let y = x + 4;
+        if (tailleU === 0xffffffff) { tailleU = Number(cd.getBigUint64(y, true)); y += 8; }
+        if (tailleC === 0xffffffff) { tailleC = Number(cd.getBigUint64(y, true)); y += 8; }
+        if (offset === 0xffffffff) { offset = Number(cd.getBigUint64(y, true)); }
+      }
+      x += 4 + sz;
+    }
+    entrees.push({ nom, methode, tailleC, offset });
+    q += 46 + ln + le + lc;
+  }
+  return entrees.filter((e) => !e.nom.endsWith('/')).map((e) => ({
+    chemin: e.nom,
+    async blob() {
+      const lh = new DataView(await fichier.slice(e.offset, e.offset + 30).arrayBuffer());
+      const debut = e.offset + 30 + lh.getUint16(26, true) + lh.getUint16(28, true);
+      const brut = fichier.slice(debut, debut + e.tailleC);
+      if (e.methode === 0) return brut;
+      if (e.methode === 8) {
+        if (typeof DecompressionStream === 'undefined') throw new Error('décompression impossible sur cet appareil (iOS 16.4 ou plus récent requis)');
+        return new Response(brut.stream().pipeThrough(new DecompressionStream('deflate-raw'))).blob();
+      }
+      throw new Error('méthode de compression non prise en charge');
+    }
+  }));
+}
+
+const TABLE_CRC = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+  return t;
+})();
+function crc32(u8) {
+  let c = 0xffffffff;
+  for (let i = 0; i < u8.length; i++) c = TABLE_CRC[(c ^ u8[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+async function comprimer(u8) {
+  if (typeof CompressionStream === 'undefined') return null;
+  try {
+    const flux = new Blob([u8]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+    return new Uint8Array(await new Response(flux).arrayBuffer());
+  } catch (e) { return null; }
+}
+async function creerZip(fichiers) {
+  const te = new TextEncoder();
+  const d = new Date();
+  const heure = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+  const jour = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  const morceaux = [], central = [];
+  let offset = 0, tailleCentral = 0;
+  for (const f of fichiers) {
+    const nom = te.encode(f.nom);
+    const brut = f.donnees;
+    const crc = crc32(brut);
+    const comp = await comprimer(brut);
+    const methode = comp && comp.length < brut.length ? 8 : 0;
+    const donnees = methode === 8 ? comp : brut;
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true);
+    lh.setUint16(8, methode, true); lh.setUint16(10, heure, true); lh.setUint16(12, jour, true);
+    lh.setUint32(14, crc, true); lh.setUint32(18, donnees.length, true); lh.setUint32(22, brut.length, true);
+    lh.setUint16(26, nom.length, true); lh.setUint16(28, 0, true);
+    morceaux.push(lh.buffer, nom, donnees);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true);
+    ch.setUint16(10, methode, true); ch.setUint16(12, heure, true); ch.setUint16(14, jour, true);
+    ch.setUint32(16, crc, true); ch.setUint32(20, donnees.length, true); ch.setUint32(24, brut.length, true);
+    ch.setUint16(28, nom.length, true); ch.setUint32(42, offset, true);
+    central.push(ch.buffer, nom);
+    offset += 30 + nom.length + donnees.length;
+    tailleCentral += 46 + nom.length;
+  }
+  const fin = new DataView(new ArrayBuffer(22));
+  fin.setUint32(0, 0x06054b50, true);
+  fin.setUint16(8, fichiers.length, true); fin.setUint16(10, fichiers.length, true);
+  fin.setUint32(12, tailleCentral, true); fin.setUint32(16, offset, true);
+  return new Blob([...morceaux, ...central, fin.buffer], { type: 'application/zip' });
+}
+
+/* ---------- Images ---------- */
+const TYPES_IMAGE = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', tif: 'image/tiff', tiff: 'image/tiff', webp: 'image/webp' };
+const extension = (c) => (c.split('.').pop() || '').toLowerCase();
+const tampon = { cle: null, promesse: null, image: null };
+async function decoder(blob) {
+  if (window.createImageBitmap) {
+    try { return await createImageBitmap(blob); } catch (e) { /* repli ci-dessous */ }
+  }
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  img.src = url;
+  await img.decode();
+  return img;
+}
+function imageDe(p) {
+  if (tampon.cle === p.image) return tampon.promesse;
+  if (tampon.image && tampon.image.close) { const vieille = tampon.image; setTimeout(() => vieille.close(), 2000); }
+  tampon.cle = p.image;
+  tampon.image = null;
+  tampon.promesse = (async () => {
+    const blob = await DB.lire('images', p.image);
+    if (!blob) throw new Error('image absente');
+    const img = await decoder(blob);
+    if (tampon.cle === p.image) tampon.image = img;
+    return img;
+  })();
+  tampon.promesse.catch(() => { if (tampon.cle === p.image) tampon.cle = null; });
+  return tampon.promesse;
+}
+const largeurImg = (img) => img.naturalWidth || img.width;
+const hauteurImg = (img) => img.naturalHeight || img.height;
+function borner(img, r) {
+  const W = largeurImg(img), H = hauteurImg(img);
+  const x = Math.max(0, Math.floor(r[0])), y = Math.max(0, Math.floor(r[1]));
+  const x2 = Math.min(W, Math.ceil(r[0] + r[2])), y2 = Math.min(H, Math.ceil(r[1] + r[3]));
+  return [x, y, Math.max(1, x2 - x), Math.max(1, y2 - y)];
+}
+function canevas(lCss, hCss) {
+  let dpr = Math.min(window.devicePixelRatio || 1, 3);
+  const maxAire = 12e6;
+  if (lCss * hCss * dpr * dpr > maxAire) dpr = Math.sqrt(maxAire / (lCss * hCss));
+  dpr = Math.min(dpr, 8000 / lCss, 8000 / hCss);
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(lCss * dpr));
+  c.height = Math.max(1, Math.round(hCss * dpr));
+  c.style.width = lCss + 'px';
+  c.style.height = hCss + 'px';
+  return c;
+}
+function peindre(c, img, k, src, poly, voile) {
+  const g = c.getContext('2d');
+  const s = c.width / src[2];
+  g.imageSmoothingEnabled = true;
+  g.imageSmoothingQuality = 'high';
+  g.fillStyle = '#e8dcbd';
+  g.fillRect(0, 0, c.width, c.height);
+  g.drawImage(img, src[0], src[1], src[2], src[3], 0, 0, c.width, c.height);
+  if (poly && voile) {
+    g.save();
+    g.beginPath();
+    g.rect(0, 0, c.width, c.height);
+    poly.forEach(([x, y], j) => {
+      const X = (x * k - src[0]) * s, Y = (y * k - src[1]) * s;
+      if (j) g.lineTo(X, Y); else g.moveTo(X, Y);
+    });
+    g.closePath();
+    g.fillStyle = 'rgba(241,240,235,' + voile + ')';
+    g.fill('evenodd');
+    g.restore();
+  }
+}
+function echelleDe(img, p) { return p.W ? largeurImg(img) / p.W : 1; }
+function polyDe(L) {
+  if (L.poly) return L.poly;
+  const [x, y, w, h] = L.boite;
+  return [[x, y], [x + w, y], [x + w, y + h], [x, y + h]];
+}
+
+/* Ligne découpée en segments empilés, pour rester lisible sur un écran étroit */
+function segmentsLigne(img, p, L, largeur, zoom, contexte) {
+  const k = echelleDe(img, p);
+  const [bx, by, bw, bh] = L.boite.map((v) => v * k);
+  if (!(bw > 0 && bh > 0)) return [el('p', { class: 'erreur' }, 'Cette ligne n’a pas de coordonnées dans le fichier.')];
+  const ech = zoom / bh;
+  if (contexte) {
+    const marge = bh * 2.4;
+    const src = borner(img, [bx - bh, by - marge, bw + 2 * bh, bh + 2 * marge]);
+    const c = canevas(src[2] * ech, src[3] * ech);
+    peindre(c, img, k, src, polyDe(L), 0.42);
+    return [el('div', { class: 'defile' }, c)];
+  }
+  const margeY = bh * 0.28, margeX = Math.min(bh * 0.6, bw * 0.03);
+  const tot = [bx - margeX, by - margeY, bw + 2 * margeX, bh + 2 * margeY];
+  const n = Math.max(1, Math.ceil((tot[2] * ech) / largeur - 0.2));
+  const pas = tot[2] / n;
+  const recouvre = n > 1 ? Math.min(bh * 1.2, pas * 0.1) : 0;
+  const sortie = [];
+  for (let j = 0; j < n; j++) {
+    const x0 = tot[0] + j * pas - (j > 0 ? recouvre : 0);
+    const x1 = tot[0] + (j + 1) * pas + (j < n - 1 ? recouvre : 0);
+    const src = borner(img, [x0, tot[1], x1 - x0, tot[3]]);
+    const c = canevas(largeur, (src[3] * largeur) / src[2]);
+    peindre(c, img, k, src, L.poly, 0.5);
+    c.setAttribute('aria-label', 'Image de la ligne, partie ' + (j + 1) + ' sur ' + n);
+    sortie.push(c);
+  }
+  return sortie;
+}
+function vignette(img, p, L, largeur) {
+  const k = echelleDe(img, p);
+  const [bx, by, bw, bh] = L.boite.map((v) => v * k);
+  if (!(bw > 0 && bh > 0)) return null;
+  const src = borner(img, [bx - bh * 0.3, by - bh * 0.2, bw + bh * 0.6, bh * 1.4]);
+  const h = Math.min(160, (src[3] * largeur) / src[2]);
+  const c = canevas(largeur, h);
+  peindre(c, img, k, src, L.poly, 0.5);
+  return c;
+}
+
+/* ---------- Palette de caractères ---------- */
+const ORDINAIRES = /[A-Za-z0-9\s.,;:!?'"()\-àâäçèéêëîïôöùûüÿÀÂÄÇÈÉÊËÎÏÔÖÙÛÜ’«»/]/u;
+function palette() {
+  const compte = new Map();
+  for (const p of S.pages) for (const L of p.lignes) {
+    for (const ch of L.lu.normalize('NFD')) {
+      if (ORDINAIRES.test(ch)) continue;
+      if (/\p{M}/u.test(ch) && /[̧̀́̂̈]/.test(ch)) continue; // accents courants du clavier
+      compte.set(ch, (compte.get(ch) || 0) + 1);
+    }
+  }
+  const auto = [...compte.entries()].sort((a, b) => b[1] - a[1]).slice(0, 18).map((e) => e[0]);
+  const perso = [...(S.reglages.palette || '').normalize('NFD')].filter((c) => c.trim());
+  const liste = [...new Set([...perso, ...auto])];
+  return liste.length ? liste : ['ſ', '&', 'ꝑ', 'ꝗ', '̃', '̄'];
+}
+const affichageTouche = (ch) => (/\p{M}/u.test(ch) ? '◌' + ch : ch);
+
+/* ---------- Navigation ---------- */
+const app = $('#app');
+function aller(hash) { if (location.hash === hash) router(); else location.hash = hash; }
+window.addEventListener('hashchange', router);
+let finVue = null;
+let numeroVue = 0;
+function router() {
+  numeroVue++;
+  if (finVue) { finVue(); finVue = null; }
+  const morceaux = location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
+  window.scrollTo(0, 0);
+  if (morceaux[0] === 'page' && pageParId(morceaux[1])) return vuePage(morceaux[1]);
+  if (morceaux[0] === 'ligne' && pageParId(morceaux[1])) return vueLigne(morceaux[1], Number(morceaux[2]) || 0);
+  if (morceaux[0] === 'export') return vueExport();
+  if (morceaux[0] === 'reglages') return vueReglages();
+  if (morceaux[0] === 'fin') return vueFin();
+  return vueAccueil();
+}
+function prochaineATraiter(pid, i) {
+  let idx = Math.max(0, S.pages.findIndex((p) => p.id === pid));
+  let depart = i + 1;
+  if (pid === undefined) { idx = 0; depart = 0; }
+  for (let a = idx; a < S.pages.length; a++) {
+    const p = S.pages[a];
+    for (let j = a === idx ? depart : 0; j < p.lignes.length; j++) if (p.lignes[j].etat === 'todo') return { pid: p.id, i: j };
+  }
+  for (let a = 0; a <= idx && a < S.pages.length; a++) {
+    const p = S.pages[a];
+    for (let j = 0; j < p.lignes.length; j++) if (p.lignes[j].etat === 'todo') return { pid: p.id, i: j };
+  }
+  return null;
+}
+function voisine(pid, i, sens) {
+  let a = S.pages.findIndex((p) => p.id === pid);
+  let j = i + sens;
+  while (a >= 0 && a < S.pages.length) {
+    const p = S.pages[a];
+    if (j >= 0 && j < p.lignes.length) return { pid: p.id, i: j };
+    a += sens;
+    if (a < 0 || a >= S.pages.length) return null;
+    j = sens > 0 ? 0 : S.pages[a].lignes.length - 1;
+  }
+  return null;
+}
+const estIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const installee = () => navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+
+/* ---------- Vue : accueil ---------- */
+function vueAccueil() {
+  const g = statsGlobales();
+  const enfantsVue = [];
+  if (estIOS && !installee()) {
+    enfantsVue.push(el('div', { class: 'alerte' },
+      el('strong', null, 'Installez l’application avant d’importer. '),
+      'Touchez le bouton Partager de Safari, puis « Sur l’écran d’accueil », et ouvrez le Correcteur depuis son icône. Safari et l’application installée ne partagent pas leurs données, et seule l’application installée fonctionne sans connexion.'));
+  }
+  if (S.message) {
+    enfantsVue.push(el('div', { class: 'message' }, S.message.texte, S.message.liste && S.message.liste.length ? el('ul', null, S.message.liste.map((x) => el('li', null, x))) : null));
+    S.message = null;
+  }
+  if (!S.pages.length) {
+    app.replaceChildren(
+      el('h1', null, 'Correction des actes'),
+      ...enfantsVue,
+      el('div', { class: 'carte' },
+        el('p', null, 'Importez des pages lues par Kraken (images avec leurs fichiers ALTO ou PAGE XML, ou une archive zip qui les contient), puis corrigez-les ligne par ligne, même sans réseau.'),
+        el('p', { class: 'discret' }, 'Les images restent sur ce téléphone. Seules les corrections repartent vers le Mac, dans un fichier zip à envoyer par AirDrop.')),
+      el('button', { class: 'bouton', onclick: () => $('#fichiers').click() }, 'Importer des pages'),
+      el('div', { class: 'liens' }, el('button', { class: 'lien', onclick: () => aller('#/reglages') }, 'Réglages'))
+    );
+    return;
+  }
+  const prochaine = prochaineATraiter();
+  const pct = g.total ? Math.round((100 * g.ok) / g.total) : 0;
+  app.replaceChildren(
+    el('h1', null, 'Correction'),
+    el('div', { class: 'mono' }, nombre(g.ok) + ' / ' + nombre(g.total) + ' lignes vérifiées' + (g.doute ? ' · ' + pluriel(g.doute, 'douteuse', 'douteuses') : '')),
+    el('div', { class: 'barre', role: 'progressbar', 'aria-valuenow': pct, 'aria-valuemin': 0, 'aria-valuemax': 100 }, el('i', { style: 'width:' + pct + '%' })),
+    el('div', { style: 'height:16px' }),
+    ...enfantsVue,
+    prochaine
+      ? el('button', { class: 'bouton', onclick: () => aller('#/ligne/' + enc(prochaine.pid) + '/' + prochaine.i) }, g.ok + g.doute ? 'Reprendre la correction' : 'Commencer la correction')
+      : el('button', { class: 'bouton', onclick: () => aller('#/export') }, 'Exporter les corrections'),
+    el('div', { class: 'liens' },
+      el('button', { class: 'lien', onclick: () => $('#fichiers').click() }, 'Importer'),
+      prochaine ? el('button', { class: 'lien', onclick: () => aller('#/export') }, 'Exporter' + (g.pagesTouchees ? ' (' + g.pagesTouchees + ')' : '')) : null,
+      el('button', { class: 'lien', onclick: () => aller('#/reglages') }, 'Réglages')),
+    ...S.pages.map((p) => {
+      const s = stats(p);
+      const d = dossierDe(p);
+      return el('button', { class: 'carte page-carte', onclick: () => aller('#/page/' + enc(p.id)) },
+        d ? el('div', { class: 'dossier' }, d) : null,
+        el('div', { class: 'nom' }, nomCourt(p)),
+        el('div', { class: 'mono' }, s.ok + ' / ' + s.total + ' vérifiées' + (s.doute ? ' · ' + s.doute + ' douteuse' + (s.doute > 1 ? 's' : '') : '') + (s.modif ? ' · ' + s.modif + ' corrigée' + (s.modif > 1 ? 's' : '') : '')),
+        el('div', { class: 'barre' }, el('i', { style: 'width:' + (s.total ? (100 * s.ok) / s.total : 0) + '%' })));
+    })
+  );
+}
+
+/* ---------- Vue : une page ---------- */
+async function vuePage(pid) {
+  const p = pageParId(pid);
+  const s = stats(p);
+  const premiere = p.lignes.findIndex((L) => L.etat === 'todo');
+  const liste = el('div');
+  app.replaceChildren(
+    el('div', { class: 'entete' }, el('button', { class: 'lien', onclick: () => aller('#/') }, '← Pages')),
+    dossierDe(p) ? el('div', { class: 'mono' }, dossierDe(p)) : null,
+    el('h2', null, nomCourt(p)),
+    el('div', { class: 'mono' }, s.ok + ' / ' + s.total + ' lignes vérifiées'),
+    el('div', { class: 'barre' }, el('i', { style: 'width:' + (s.total ? (100 * s.ok) / s.total : 0) + '%' })),
+    el('div', { style: 'height:16px' }),
+    el('button', { class: 'bouton', onclick: () => aller('#/ligne/' + enc(pid) + '/' + Math.max(0, premiere)) }, premiere >= 0 ? 'Corriger cette page' : 'Revoir cette page'),
+    el('div', { style: 'height:12px' }),
+    liste,
+    el('div', { class: 'liens' }, el('button', { class: 'lien danger', onclick: () => retirerPage(p) }, 'Retirer cette page du téléphone'))
+  );
+  const cartes = p.lignes.map((L) => {
+    const zone = el('div');
+    const carte = el('button', { class: 'carte ligne-carte', onclick: () => aller('#/ligne/' + enc(pid) + '/' + L.i) },
+      zone,
+      el('div', { class: 'txt' }, el('span', { class: 'pastille ' + L.etat }), L.texte ? el('span', null, L.texte) : el('span', { class: 'vide' }, 'ligne vide')));
+    liste.append(carte);
+    return { L, zone, carte };
+  });
+  const maVue = numeroVue;
+  let img;
+  try { img = await imageDe(p); } catch (e) {
+    liste.prepend(el('p', { class: 'erreur' }, 'L’image de cette page est introuvable. Réimportez-la avec son fichier XML.'));
+    return;
+  }
+  if (maVue !== numeroVue) return;
+  for (const { L, zone, carte } of cartes) {
+    const largeur = carte.clientWidth - 24;
+    const v = vignette(img, p, L, Math.max(120, largeur));
+    if (v) zone.append(v);
+  }
+}
+async function retirerPage(p) {
+  if (!confirm('Retirer « ' + nomCourt(p) + ' » du téléphone ? Les corrections non exportées de cette page seront perdues.')) return;
+  await DB.effacer('pages', p.id);
+  await DB.effacer('xml', p.id);
+  if (!S.pages.some((q) => q !== p && q.image === p.image)) await DB.effacer('images', p.image);
+  S.pages = S.pages.filter((q) => q !== p);
+  aller('#/');
+}
+
+/* ---------- Vue : correction d'une ligne ---------- */
+function vueLigne(pidInitial, iInitial) {
+  const c = { pid: pidInitial, i: iInitial, jeton: 0, contexte: false };
+  const compteur = el('span', { class: 'mono' });
+  const etat = el('span', { class: 'etat' });
+  const segs = el('div', { class: 'segments' });
+  const saisie = el('textarea', {
+    class: 'saisie', rows: 2, autocorrect: 'off', autocapitalize: 'off', autocomplete: 'off',
+    spellcheck: 'false', enterkeyhint: 'next', lang: 'fr', 'aria-label': 'Texte de la ligne'
+  });
+  const lu = el('div', { class: 'lu' });
+  const lienContexte = el('button', { class: 'lien' }, 'Voir le contexte');
+  const garderFocus = (e) => e.preventDefault();
+  const zoomMoins = el('button', { class: 'lien', 'aria-label': 'Réduire l’image', onpointerdown: garderFocus, onclick: () => changerZoom(-10) }, '−');
+  const zoomPlus = el('button', { class: 'lien', 'aria-label': 'Agrandir l’image', onpointerdown: garderFocus, onclick: () => changerZoom(10) }, '+');
+  const touches = el('div', { class: 'palette', role: 'toolbar', 'aria-label': 'Caractères spéciaux' },
+    palette().map((ch) => el('button', { class: 'touche', onpointerdown: garderFocus, onclick: () => inserer(ch), 'aria-label': 'Insérer le caractère ' + ch }, affichageTouche(ch))));
+  const lienDoute = el('button', { class: 'lien', onpointerdown: garderFocus, onclick: () => valider('doute') }, 'Douteuse');
+  const lienPrec = el('button', { class: 'lien', onpointerdown: garderFocus, onclick: () => deplacer(-1) }, '← Précédente');
+  const lienSuiv = el('button', { class: 'lien', onpointerdown: garderFocus, onclick: () => deplacer(1) }, 'Suivante →');
+
+  app.replaceChildren(
+    el('div', { class: 'entete' },
+      el('button', { class: 'lien', onclick: () => { enregistrerSiChange(); aller('#/page/' + enc(c.pid)); } }, '← Page'),
+      el('div', { class: 'compteur' }, compteur, etat)),
+    segs,
+    el('div', { class: 'outils' }, lienContexte, el('div', { class: 'zoom' }, zoomMoins, zoomPlus)),
+    touches,
+    saisie,
+    lu,
+    el('div', { class: 'actions' },
+      el('button', { class: 'bouton', onpointerdown: garderFocus, onclick: () => valider('ok') }, 'Valider'),
+      el('div', { class: 'liens' }, lienPrec, lienDoute, lienSuiv))
+  );
+
+  lienContexte.addEventListener('pointerdown', garderFocus);
+  lienContexte.addEventListener('click', () => {
+    c.contexte = !c.contexte;
+    lienContexte.textContent = c.contexte ? 'Ligne seule' : 'Voir le contexte';
+    dessiner();
+  });
+  saisie.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); valider('ok'); }
+  });
+  saisie.addEventListener('input', majLu);
+
+  function page() { return pageParId(c.pid); }
+  function ligne() { return page().lignes[c.i]; }
+  function majInfos() {
+    const p = page(), L = ligne();
+    const rang = S.pages.indexOf(p) + 1;
+    compteur.textContent = 'p. ' + rang + '/' + S.pages.length + ' · l. ' + (c.i + 1) + '/' + p.lignes.length;
+    etat.className = 'etat ' + L.etat;
+    etat.textContent = L.etat === 'ok' ? 'vérifiée' : L.etat === 'doute' ? 'douteuse' : 'à vérifier';
+    lienPrec.disabled = !voisine(c.pid, c.i, -1);
+    lienSuiv.disabled = !voisine(c.pid, c.i, 1);
+    majLu();
+  }
+  function majLu() {
+    const L = ligne();
+    if (nettoyer(saisie.value) !== nettoyer(L.lu)) {
+      lu.replaceChildren(
+        el('span', null, 'Lu par Kraken : ', el('em', null, L.lu || '(vide)')),
+        el('button', { class: 'lien', onpointerdown: garderFocus, onclick: () => { saisie.value = L.lu; majLu(); } }, 'Rétablir'));
+    } else lu.replaceChildren();
+  }
+  function charger(pid, i) {
+    c.pid = pid; c.i = i;
+    const L = ligne();
+    saisie.value = L.texte;
+    history.replaceState(null, '', '#/ligne/' + enc(pid) + '/' + i);
+    majInfos();
+    dessiner();
+  }
+  async function dessiner() {
+    const jeton = ++c.jeton;
+    const p = page(), L = ligne();
+    segs.classList.add('charge');
+    let img;
+    try { img = await imageDe(p); } catch (e) {
+      if (jeton === c.jeton) { segs.classList.remove('charge'); segs.replaceChildren(el('p', { class: 'erreur' }, 'Image introuvable pour cette page.')); }
+      return;
+    }
+    if (jeton !== c.jeton) return;
+    const largeur = Math.max(200, segs.clientWidth || app.clientWidth - 32);
+    segs.replaceChildren(...segmentsLigne(img, p, L, largeur, S.reglages.zoom, c.contexte));
+    segs.classList.remove('charge');
+  }
+  function changerZoom(d) {
+    S.reglages.zoom = Math.min(160, Math.max(30, S.reglages.zoom + d));
+    sauverReglages();
+    dessiner();
+  }
+  function inserer(ch) {
+    const a = saisie.selectionStart ?? saisie.value.length, b = saisie.selectionEnd ?? a;
+    saisie.setRangeText(ch, a, b, 'end');
+    saisie.dispatchEvent(new Event('input'));
+  }
+  async function enregistrer(nouvelEtat) {
+    const p = page(), L = ligne();
+    L.texte = nettoyer(saisie.value);
+    if (nouvelEtat) L.etat = nouvelEtat;
+    await sauverPage(p);
+  }
+  function enregistrerSiChange() {
+    const L = ligne();
+    if (nettoyer(saisie.value) !== L.texte) enregistrer(null);
+  }
+  async function valider(nouvelEtat) {
+    await enregistrer(nouvelEtat);
+    const s = prochaineATraiter(c.pid, c.i);
+    if (s) charger(s.pid, s.i);
+    else { saisie.blur(); aller('#/fin'); }
+  }
+  async function deplacer(sens) {
+    const v = voisine(c.pid, c.i, sens);
+    if (!v) return;
+    if (nettoyer(saisie.value) !== ligne().texte) await enregistrer(null);
+    charger(v.pid, v.i);
+  }
+
+  let attente;
+  const auRedimensionnement = () => { clearTimeout(attente); attente = setTimeout(dessiner, 150); };
+  window.addEventListener('resize', auRedimensionnement);
+  finVue = () => { window.removeEventListener('resize', auRedimensionnement); enregistrerSiChange(); };
+  charger(pidInitial, Math.min(iInitial, pageParId(pidInitial).lignes.length - 1));
+}
+
+function vueFin() {
+  const g = statsGlobales();
+  app.replaceChildren(
+    el('h1', null, 'Toutes les lignes sont passées'),
+    el('div', { class: 'carte' },
+      el('p', null, nombre(g.ok) + ' lignes vérifiées' + (g.doute ? ' et ' + pluriel(g.doute, 'douteuse', 'douteuses') : '') + ', dont ' + pluriel(g.modif, 'corrigée', 'corrigées') + '.'),
+      g.doute ? el('p', { class: 'discret' }, 'Les lignes douteuses restent repérables en ocre dans chaque page, si vous voulez y revenir.') : null),
+    el('button', { class: 'bouton', onclick: () => aller('#/export') }, 'Exporter les corrections'),
+    el('div', { class: 'liens' }, el('button', { class: 'lien', onclick: () => aller('#/') }, 'Retour aux pages'))
+  );
+}
+
+/* ---------- Vue : export ---------- */
+function vueExport() {
+  const g = statsGlobales();
+  const touchees = S.pages.filter((p) => stats(p).touchee);
+  const zone = el('div');
+  const preparer = el('button', { class: 'bouton', disabled: !touchees.length }, 'Préparer le fichier');
+  zone.append(preparer);
+  app.replaceChildren(
+    el('div', { class: 'entete' }, el('button', { class: 'lien', onclick: () => aller('#/') }, '← Pages')),
+    el('h1', null, 'Exporter'),
+    el('div', { class: 'carte' },
+      touchees.length
+        ? el('p', null, pluriel(touchees.length, 'page', 'pages') + ' à exporter, avec ' + pluriel(g.modif, 'ligne corrigée', 'lignes corrigées') + ', ' + pluriel(g.ok, 'ligne vérifiée', 'lignes vérifiées') + ' et ' + pluriel(g.doute, 'ligne douteuse', 'lignes douteuses') + '.')
+        : el('p', null, 'Aucune page n’a encore été corrigée.'),
+      el('p', { class: 'discret' }, 'Le fichier contient les XML corrigés de ces pages, rangés comme à l’import, et un fichier etat_correction.json qui liste les lignes vérifiées et douteuses. Chaque export reprend toutes les corrections faites jusqu’ici, donc le plus récent suffit.'),
+      el('p', { class: 'discret' }, 'Normalisation appliquée aux lignes saisies : ' + libelleNorm() + '.')),
+    zone
+  );
+  preparer.addEventListener('click', async () => {
+    preparer.disabled = true;
+    preparer.textContent = 'Préparation…';
+    try {
+      const te = new TextEncoder();
+      const fichiers = [];
+      const etat = { cree: new Date().toISOString(), normalisation: formeNorm(), pages: {} };
+      for (const p of touchees) {
+        const xml = await DB.lire('xml', p.id);
+        fichiers.push({ nom: p.chemin, donnees: te.encode(xmlCorrige(xml, p)) });
+        etat.pages[p.chemin] = {
+          image: p.image,
+          lignes: p.lignes.length,
+          verifiees: p.lignes.filter((L) => L.etat === 'ok').map((L) => L.i),
+          douteuses: p.lignes.filter((L) => L.etat === 'doute').map((L) => L.i),
+          corrigees: p.lignes.filter((L) => L.texte !== L.lu).map((L) => L.i)
+        };
+      }
+      fichiers.push({ nom: 'etat_correction.json', donnees: te.encode(JSON.stringify(etat, null, 2)) });
+      const zip = await creerZip(fichiers);
+      const d = new Date(), z2 = (n) => String(n).padStart(2, '0');
+      const nom = 'corrections_' + d.getFullYear() + '-' + z2(d.getMonth() + 1) + '-' + z2(d.getDate()) + '_' + z2(d.getHours()) + 'h' + z2(d.getMinutes()) + '.zip';
+      const fichier = new File([zip], nom, { type: 'application/zip' });
+      window.__dernierExport = fichier;
+      const url = URL.createObjectURL(fichier);
+      const partager = el('button', { class: 'bouton' }, 'Partager ' + nom);
+      partager.addEventListener('click', async () => {
+        try {
+          if (navigator.canShare && navigator.canShare({ files: [fichier] })) await navigator.share({ files: [fichier], title: nom });
+          else lienTelecharger.click();
+        } catch (e) { if (e.name !== 'AbortError') lienTelecharger.click(); }
+      });
+      const lienTelecharger = el('a', { class: 'lien', href: url, download: nom }, 'Télécharger le fichier');
+      zone.replaceChildren(
+        partager,
+        el('div', { class: 'liens' }, lienTelecharger),
+        el('p', { class: 'discret' }, 'Envoyez-le au Mac par AirDrop, puis lancez integrer_corrections.py pour ranger les XML dans le projet.'));
+    } catch (e) {
+      preparer.disabled = false;
+      preparer.textContent = 'Préparer le fichier';
+      zone.append(el('p', { class: 'erreur' }, 'L’export a échoué : ' + e.message));
+    }
+  });
+}
+function libelleNorm() {
+  const f = formeNorm();
+  return f === 'aucune' ? 'aucune' : f + (S.reglages.norm === 'auto' ? ' (détectée dans vos fichiers)' : '');
+}
+
+/* ---------- Vue : réglages ---------- */
+async function vueReglages() {
+  const choix = el('select', { id: 'norm' },
+    [['auto', 'Automatique (' + S.reglages.corpusNorm + ' détectée)'], ['NFD', 'NFD (caractères décomposés)'], ['NFC', 'NFC (caractères composés)'], ['aucune', 'Ne rien modifier']]
+      .map(([v, t]) => el('option', { value: v, selected: S.reglages.norm === v }, t)));
+  choix.addEventListener('change', () => { S.reglages.norm = choix.value; sauverReglages(); });
+  const perso = el('input', { type: 'text', id: 'palette', value: S.reglages.palette, autocorrect: 'off', autocapitalize: 'off', spellcheck: 'false', placeholder: 'ex. ſꝑ̃' });
+  perso.addEventListener('change', () => { S.reglages.palette = perso.value; sauverReglages(); });
+  const place = el('p', { class: 'mono' }, 'Calcul de l’espace utilisé…');
+  app.replaceChildren(
+    el('div', { class: 'entete' }, el('button', { class: 'lien', onclick: () => aller('#/') }, '← Pages')),
+    el('h1', null, 'Réglages'),
+    el('div', { class: 'carte' },
+      el('label', { class: 'champ', for: 'norm' }, 'Normalisation Unicode'),
+      choix,
+      el('p', { class: 'discret', style: 'margin-top:8px' }, 'Un modèle entraîné en NFD (comme McCATMuS_nfd) attend des accents décomposés, alors que le clavier de l’iPhone les saisit composés. Le mode automatique reprend la forme trouvée dans vos fichiers.')),
+    el('div', { class: 'carte' },
+      el('label', { class: 'champ', for: 'palette' }, 'Caractères ajoutés à la palette'),
+      perso,
+      el('p', { class: 'discret', style: 'margin-top:8px' }, 'Ils s’affichent en tête de la rangée au-dessus du champ de saisie, avant les caractères rares relevés dans vos pages.')),
+    el('div', { class: 'carte' },
+      el('label', { class: 'champ' }, 'Stockage'),
+      place,
+      el('button', { class: 'lien danger', style: 'margin-left:-6px', onclick: toutEffacer }, 'Effacer toutes les données du téléphone')),
+    el('p', { class: 'mono' }, 'Correcteur d’actes, version 1')
+  );
+  try {
+    const e = navigator.storage && navigator.storage.estimate ? await navigator.storage.estimate() : null;
+    const persiste = navigator.storage && navigator.storage.persisted ? await navigator.storage.persisted() : false;
+    place.textContent = (e ? (e.usage / 1e6).toFixed(0) + ' Mo utilisés' : 'Espace inconnu') + ' · ' + S.pages.length + ' pages' + (persiste ? ' · stockage protégé' : '');
+  } catch (err) { place.textContent = S.pages.length + ' pages'; }
+}
+async function toutEffacer() {
+  if (!confirm('Effacer toutes les pages et toutes les corrections du téléphone ? Exportez d’abord ce que vous voulez garder.')) return;
+  for (const m of ['pages', 'xml', 'images']) await DB.vider(m);
+  S.pages = [];
+  aller('#/');
+}
+
+/* ---------- Import ---------- */
+function voile(texte) {
+  const t = el('p', { class: 'mono', style: 'margin:0' }, texte);
+  const v = el('div', { class: 'voile' }, el('div', { class: 'carte' }, el('h2', null, 'Import'), t));
+  document.body.append(v);
+  return { maj: (x) => { t.textContent = x; }, fermer: () => v.remove() };
+}
+const ignorer = (chemin) => /(^|\/)(__MACOSX|\.)/.test(chemin) || /(^|\/)\._/.test(chemin);
+
+async function importer(liste) {
+  const v = voile('Lecture des fichiers…');
+  const problemes = [];
+  let ajoutees = 0, remplacees = 0, sautees = 0;
+  try {
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+    const entrees = [];
+    for (const f of liste) {
+      if (extension(f.name) === 'zip') {
+        try { entrees.push(...(await lireZip(f))); } catch (e) { problemes.push(f.name + ' : ' + e.message); }
+      } else entrees.push({ chemin: f.name.normalize('NFC'), blob: async () => f });
+    }
+    const utiles = entrees.filter((e) => !ignorer(e.chemin));
+    const xmls = utiles.filter((e) => extension(e.chemin) === 'xml');
+    const images = new Map();
+    for (const e of utiles) if (TYPES_IMAGE[extension(e.chemin)]) {
+      const b = baseNom(e.chemin).toLowerCase();
+      if (!images.has(b)) images.set(b, e);
+      const tige = b.replace(/\.[^.]+$/, '');
+      if (!images.has('tige:' + tige)) images.set('tige:' + tige, e);
+    }
+    if (!xmls.length) throw new Error('aucun fichier XML trouvé dans la sélection');
+
+    const lues = [];
+    for (let k = 0; k < xmls.length; k++) {
+      const e = xmls[k];
+      v.maj('Lecture des XML ' + (k + 1) + '/' + xmls.length);
+      try {
+        const texte = await (await e.blob()).text();
+        const info = lireXml(texte);
+        if (!info.lignes.length) { problemes.push(baseNom(e.chemin) + ' : aucune ligne'); continue; }
+        const tige = baseNom(e.chemin).toLowerCase().replace(/\.xml$/, '');
+        const imgE = (info.image && images.get(info.image.toLowerCase())) || images.get('tige:' + tige)
+          || (info.image && images.get('tige:' + info.image.toLowerCase().replace(/\.[^.]+$/, '')));
+        if (!imgE) { problemes.push(baseNom(e.chemin) + ' : image introuvable' + (info.image ? ' (' + info.image + ')' : '')); continue; }
+        lues.push({ e, texte, info, imgE });
+      } catch (err) { problemes.push(baseNom(e.chemin) + ' : ' + err.message); }
+    }
+    const conflits = lues.filter((x) => { const p = pageParId(x.e.chemin); return p && stats(p).touchee; });
+    let remplacer = true;
+    if (conflits.length) {
+      v.maj('En attente de votre choix…');
+      remplacer = confirm(pluriel(conflits.length, 'page importée existe', 'pages importées existent') + ' déjà avec des corrections sur le téléphone. Les remplacer par la nouvelle version ? (Annuler garde les pages actuelles.)');
+    }
+    for (let k = 0; k < lues.length; k++) {
+      const { e, texte, info, imgE } = lues[k];
+      const id = e.chemin;
+      const existante = pageParId(id);
+      if (existante && stats(existante).touchee && !remplacer) { sautees++; continue; }
+      v.maj('Enregistrement ' + (k + 1) + '/' + lues.length);
+      const brut = await imgE.blob();
+      const blob = new Blob([brut], { type: TYPES_IMAGE[extension(imgE.chemin)] });
+      const cleImage = imgE.chemin;
+      await DB.ecrire('images', blob, cleImage);
+      await DB.ecrire('xml', texte, id);
+      const p = { id, chemin: id, format: info.format, W: info.W, H: info.H, image: cleImage, lignes: info.lignes, importee: Date.now() };
+      await DB.ecrire('pages', p);
+      if (existante) { S.pages[S.pages.indexOf(existante)] = p; remplacees++; } else { S.pages.push(p); ajoutees++; }
+      if (tampon.cle === cleImage) tampon.cle = null;
+    }
+    trierPages();
+    detecterNorm();
+    await sauverReglages();
+    let texte = pluriel(ajoutees, 'page ajoutée', 'pages ajoutées');
+    if (remplacees) texte += ', ' + pluriel(remplacees, 'remplacée', 'remplacées');
+    if (sautees) texte += ', ' + pluriel(sautees, 'gardée telle quelle', 'gardées telles quelles');
+    if (problemes.length) texte += ', ' + pluriel(problemes.length, 'fichier ignoré', 'fichiers ignorés') + ' :';
+    S.message = { texte: texte + (problemes.length ? '' : '.'), liste: problemes.slice(0, 12).concat(problemes.length > 12 ? ['… et ' + (problemes.length - 12) + ' autres'] : []) };
+  } catch (err) {
+    S.message = { texte: 'L’import a échoué : ' + err.message + '.', liste: problemes };
+  } finally {
+    v.fermer();
+    aller('#/');
+  }
+}
+$('#fichiers').addEventListener('change', (e) => {
+  const liste = Array.from(e.target.files || []);
+  e.target.value = '';
+  if (liste.length) importer(liste);
+});
+
+/* ---------- Démarrage ---------- */
+(async function demarrer() {
+  try {
+    await DB.ouvrir();
+    S.pages = await DB.tout('pages');
+    const r = await DB.lire('reglages', 'r');
+    if (r) Object.assign(S.reglages, r);
+    trierPages();
+    router();
+  } catch (e) {
+    app.replaceChildren(el('h1', null, 'Correction'), el('p', { class: 'erreur' }, 'Le stockage du téléphone est inaccessible : ' + e.message));
+  }
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>

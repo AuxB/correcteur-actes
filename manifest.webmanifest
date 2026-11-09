@@ -1,0 +1,17 @@
+{
+  "name": "Correcteur d'actes",
+  "short_name": "Correcteur",
+  "description": "Correction hors ligne des lignes lues par Kraken.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f1f0eb",
+  "theme_color": "#f1f0eb",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
